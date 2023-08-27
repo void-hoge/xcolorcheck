@@ -2,6 +2,8 @@
 
 - Display colors from RGB values or X color names input from stdin or the rgb.txt.
 
+![](./screenshot.png)
+
 ## SYNOPSIS
 - `./xcolorcheck <file>`
   - Input from file

@@ -27,3 +27,6 @@
 
 ## Author
 - Mugi Noda (void-hoge)
+
+## LICENSE
+- GPLv3

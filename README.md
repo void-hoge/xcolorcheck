@@ -25,7 +25,7 @@
 - `cat /etc/X11/rgb.txt | grep blue | ./xcolorcheck`
   - Input colors contains 'blue' in the rgb.txt.
 
-## Author
+## AUTHOR
 - Mugi Noda (void-hoge)
 
 ## LICENSE

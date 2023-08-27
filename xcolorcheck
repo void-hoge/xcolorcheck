@@ -1,0 +1,116 @@
+#!/usr/bin/python3
+
+import re
+import sys
+from Xlib import X, XK, display
+
+WIDTH  = 512
+HEIGHT = 512
+
+class ColorCheck:
+    def __init__(self):
+        self.display = display.Display()
+        self.screen = self.display.screen()
+        self.window = self.screen.root.create_window(
+            0,0,WIDTH,HEIGHT,0,
+            self.screen.root_depth,
+            X.InputOutput,
+            X.CopyFromParent,
+            event_mask=X.KeyPressMask | X.ExposureMask,
+            background_pixel=self.screen.white_pixel,
+            override_redirect=False,
+            colormap=X.CopyFromParent)
+        self.window.map()
+        self.window.change_attributes(backing_store=X.Always)
+        self.colormap = self.screen.default_colormap
+        self.colors_to_check = []
+        self.quitkeycode = self.display.keysym_to_keycode(XK.string_to_keysym('q'))
+        self.nextkeycode = self.display.keysym_to_keycode(XK.string_to_keysym('n'))
+        self.prevkeycode = self.display.keysym_to_keycode(XK.string_to_keysym('p'))
+        self.display.next_event()
+
+    def add_color(self, arg):
+        self.colors_to_check.append(arg)
+
+    def get_gc_from_colorname(self, colorname):
+        color = self.colormap.alloc_named_color(re.sub('\s+$', '', colorname))
+        if color != None:
+            return self.window.create_gc(
+                foreground=color.pixel, background=color.pixel)
+        else:
+            raise ValueError('Invalid colorname.')
+
+    def get_gc_from_colorval(self, colorval):
+        r, g, b = colorval
+        color = self.colormap.alloc_color(r*65525//255, g*65535//255, b*65535//255)
+        return self.window.create_gc(
+            foreground=color.pixel, background=color.pixel)
+
+    def get_gc(self, arg):
+        try:
+            value = tuple(map(int, arg.split()[:3]))
+            return self.get_gc_from_colorval(value)
+        except ValueError:
+            return self.get_gc_from_colorname(arg)
+
+    def show(self, color):
+        geom = self.window.get_geometry()
+        gc = self.get_gc(color)
+        self.window.fill_rectangle(
+                gc,0,0,geom.width,geom.height)
+        # FIXME: An elegant way to update the window.
+        geom = self.window.get_geometry()
+
+    def loop(self):
+        geom = self.window.get_geometry()
+        idx = 0
+        while idx < len(self.colors_to_check):
+            color = self.colors_to_check[idx]
+            geom = self.window.get_geometry()
+            try:
+                gc = self.get_gc(color)
+                self.window.fill_rectangle(
+                    gc,0,0,geom.width,geom.height)
+                print(f'{idx:4}:\t {color}')
+            except ValueError:
+                print(f'{idx:4}:\t {color} is not defined.')
+            while True:
+                event = self.display.next_event()
+                if event.type == X.KeyPress:
+                    keycode = event.detail
+                    modifier = event.state
+                    if modifier == 0 and keycode == self.nextkeycode:
+                        idx+=1
+                        if idx >= len(self.colors_to_check):
+                            idx = len(self.colors_to_check)-1
+                        break
+                    elif modifier == 0 and keycode == self.prevkeycode:
+                        idx-=1
+                        if idx < 0:
+                            idx = 0
+                        break
+                    elif modifier == 0 and keycode == self.quitkeycode:
+                        return
+
+def main():
+    cc = ColorCheck()
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], 'r') as f:
+            lines = f.read().split('\n')
+            for line in lines:
+                line = re.sub('\s+$', '', line)
+                if line:
+                    cc.add_color(line)
+    else:
+        while True:
+            try:
+                print('> ', end='')
+                color = input()
+                if color:
+                    cc.add_color(color)
+            except EOFError:
+                break
+    cc.loop()
+
+if __name__ == '__main__':
+    main()

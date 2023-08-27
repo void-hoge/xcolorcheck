@@ -33,12 +33,13 @@ class ColorCheck:
         self.colors_to_check.append(arg)
 
     def get_gc_from_colorname(self, colorname):
-        color = self.colormap.alloc_named_color(re.sub('\s+$', '', colorname))
-        if color != None:
-            return self.window.create_gc(
-                foreground=color.pixel, background=color.pixel)
-        else:
-            raise ValueError('Invalid colorname.')
+        words = colorname.split()
+        for i in range(len(words), 0, -1):
+            color = self.colormap.alloc_named_color(' '.join(words[:i]))
+            if color != None:
+                return self.window.create_gc(
+                    foreground=color.pixel, background=color.pixel)            
+        raise ValueError('Invalid colorname.')
 
     def get_gc_from_colorval(self, colorval):
         r, g, b = colorval
@@ -83,11 +84,13 @@ class ColorCheck:
                         idx+=1
                         if idx >= len(self.colors_to_check):
                             idx = len(self.colors_to_check)-1
+                            continue
                         break
                     elif modifier == 0 and keycode == self.prevkeycode:
                         idx-=1
                         if idx < 0:
                             idx = 0
+                            continue
                         break
                     elif modifier == 0 and keycode == self.quitkeycode:
                         return
